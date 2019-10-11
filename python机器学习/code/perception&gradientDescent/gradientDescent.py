@@ -60,7 +60,7 @@ class AdalineGD(object):
             # a sigmoid function to implement a logistic regression classifier.
             output = self.activation(net_input)  # 调用激活函数，这里其实并没有影响
             errors = (y - output)
-            self.w_[1:] += self.eta * X.T.dot(errors)
+            self.w_[1:] += self.eta * X.T.dot(errors)  # 运用所有的样本来更新数
             self.w_[0] += self.eta * errors.sum()
             cost = (errors ** 2).sum() / 2.0
             self.cost_.append(cost)  # 保存代价函数的值，来分析何时收敛
