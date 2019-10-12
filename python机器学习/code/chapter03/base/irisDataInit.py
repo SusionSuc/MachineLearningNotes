@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+# 文件名: irisDataInit.py
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import datasets
