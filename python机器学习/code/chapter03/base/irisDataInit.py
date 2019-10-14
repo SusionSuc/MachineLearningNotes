@@ -38,6 +38,8 @@ X_test_std = sc.transform(X_test)  # 使用相同的 \mu (样本均值) 和 \sig
 
 # print('X_train : ', X_train)
 # print('X_train_std : ', X_train_std)
+print('X_test_std : ', X_test_std)
+
 
 
 # 绘制鸢尾花分类图， && 带决策边界
@@ -85,3 +87,12 @@ def plot_decision_regions(X, y, classifier, test_idx=None, resolution=0.02):
                     marker='o',
                     s=100,
                     label='test set')
+
+# vstack 用来 竖直堆叠序列中的数组（行方向）  https://www.runoob.com/numpy/numpy-array-manipulation.html
+X_combined_std = np.vstack((X_train_std, X_test_std))
+
+# print("X_combined_std", X_combined_std)
+
+y_combined = np.hstack((y_train, y_test))  # hstack  用来 水平堆叠序列中的数组（列方向）
+
+# print("y_combined", y_combined)
