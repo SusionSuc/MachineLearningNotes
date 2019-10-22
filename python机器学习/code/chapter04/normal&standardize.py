@@ -58,10 +58,11 @@ X_train_std = stdsc.fit_transform(X_train)
 
 X_test_std = stdsc.transform(X_test)
 
-
 # 选择有意义的特征
 
 # 正则化
+
+print('normalized:', (ex - ex.min()) / (ex.max() - ex.min()))
 
 from sklearn.linear_model import LogisticRegression
 
@@ -74,4 +75,3 @@ print('Test accuracy:', lr.score(X_test_std, y_test))
 print(lr.intercept_)
 
 print(lr.coef_)
-
