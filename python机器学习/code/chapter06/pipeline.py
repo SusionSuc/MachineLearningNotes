@@ -37,10 +37,21 @@ from sklearn.model_selection import StratifiedKFold
 kfold = StratifiedKFold(n_splits=10, random_state=1).split(X_train, y_train)
 # print(kfold)
 scores = []
+
 for k, (train, test) in enumerate(kfold):
     pipe_lr.fit(X_train[train], y_train[train])
     score = pipe_lr.score(X_train[test], y_train[test])
     scores.append(score)
+    # print('k',k)R
     # print('Fold: %2d, Class dist.: %s, Acc: %.3f' % (k + 1, np.bincount(y_train[train]), score))
 
 print('\nCV accuracy: %.3f +/- %.3f' % (np.mean(scores), np.std(scores)))
+
+# 分层交叉验证
+
+from sklearn.model_selection import cross_val_score
+
+scores = cross_val_score(pipe_lr, X=X_train, y=y_train, cv=10, n_jobs=1)  # cv 就是交叉验证参数
+
+print('CV accuracy scores: %s' % scores)
+print('CV accuracy: %.3f +/- %.3f' % (np.mean(scores), np.std(scores)))
