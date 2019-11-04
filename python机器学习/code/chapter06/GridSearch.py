@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
+import numpy as np
 
 df = pd.read_csv("wdbc.data", header=None)
 
@@ -42,3 +43,15 @@ print(gs.best_params_)
 clf = gs.best_estimator_
 clf.fit(X_train, y_train)
 print('Test accuracy: %.3f' % clf.score(X_test, y_test))
+
+# 嵌套式交叉验证
+# 外层循环:k折交叉验证  +  内层循环:网格搜索
+
+from sklearn.model_selection import cross_val_score
+
+gs = GridSearchCV(estimator=pipe_svc, param_grid=param_grid, scoring='accuracy', cv=2)
+scores = cross_val_score(gs, X_train, y_train, scoring='accuracy', cv=5)
+print('CV accuracy: %.3f +/- %.3f' % (np.mean(scores),
+                                      np.std(scores)))
+
+
