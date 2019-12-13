@@ -1,5 +1,9 @@
 import numpy as np
-
+import sys
+import gzip
+import shutil
+import os
+import struct
 
 class NeuralNetMLP(object):
     """ Feedforward neural network / Multi-layer perceptron classifier.
@@ -136,11 +140,124 @@ class NeuralNetMLP(object):
         # iterate over training epochs
         for i in range(self.epochs):
 
-            indices = np.arange(X_train.shaple[0])
+            # iterate over minibatches
+            indices = np.arange(X_train.shape[0])
 
             if self.shuffle:
                 self.random.shuffle(indices)
 
-            for start_idx in range(0, indices.shape[0] - self.minibatch_size + 1, self.minibatch_size):
-                
+            for start_idx in range(0, indices.shape[0] - self.minibatch_size +
+                                      1, self.minibatch_size):
                 batch_idx = indices[start_idx:start_idx + self.minibatch_size]
+
+                # forward propagation
+                z_h, a_h, z_out, a_out = self._forward(X_train[batch_idx])
+
+                ##################
+                # Backpropagation  计算 \delta_w , 最终更新权重矩阵
+                ##################
+
+                # [n_samples, n_classlabels]
+                sigma_out = a_out - y_train_enc[batch_idx]
+
+                # [n_samples, n_hidden]
+                sigmoid_derivative_h = a_h * (1. - a_h)
+
+                # [n_samples, n_classlabels] dot [n_classlabels, n_hidden]
+                # -> [n_samples, n_hidden]
+                sigma_h = (np.dot(sigma_out, self.w_out.T) *
+                           sigmoid_derivative_h)
+
+                # [n_features, n_samples] dot [n_samples, n_hidden]
+                # -> [n_features, n_hidden]
+                grad_w_h = np.dot(X_train[batch_idx].T, sigma_h)
+                grad_b_h = np.sum(sigma_h, axis=0)
+
+                # [n_hidden, n_samples] dot [n_samples, n_classlabels]
+                # -> [n_hidden, n_classlabels]
+                grad_w_out = np.dot(a_h.T, sigma_out)
+                grad_b_out = np.sum(sigma_out, axis=0)
+
+                # Regularization and weight updates
+                delta_w_h = (grad_w_h + self.l2 * self.w_h)
+                delta_b_h = grad_b_h  # bias is not regularized
+                self.w_h -= self.eta * delta_w_h
+                self.b_h -= self.eta * delta_b_h
+
+                delta_w_out = (grad_w_out + self.l2 * self.w_out)
+                delta_b_out = grad_b_out  # bias is not regularized
+                self.w_out -= self.eta * delta_w_out
+                self.b_out -= self.eta * delta_b_out
+
+            #############
+            # Evaluation
+            #############
+
+            # Evaluation after each epoch during training
+            z_h, a_h, z_out, a_out = self._forward(X_train)
+
+            cost = self._compute_cost(y_enc=y_train_enc,
+                                      output=a_out)
+
+            y_train_pred = self.predict(X_train)
+            y_valid_pred = self.predict(X_valid)
+
+            train_acc = ((np.sum(y_train == y_train_pred)).astype(np.float) /
+                         X_train.shape[0])
+            valid_acc = ((np.sum(y_valid == y_valid_pred)).astype(np.float) /
+                         X_valid.shape[0])
+
+            sys.stderr.write('\r%0*d/%d | Cost: %.2f '
+                             '| Train/Valid Acc.: %.2f%%/%.2f%% ' %
+                             (epoch_strlen, i + 1, self.epochs, cost,
+                              train_acc * 100, valid_acc * 100))
+            sys.stderr.flush()
+
+            self.eval_['cost'].append(cost)
+            self.eval_['train_acc'].append(train_acc)
+            self.eval_['valid_acc'].append(valid_acc)
+
+        return self
+
+
+def load_mnist(path, kind='train'):
+    """Load MNIST data from `path`"""
+    labels_path = os.path.join(path,
+                               '%s-labels-idx1-ubyte' % kind)
+    images_path = os.path.join(path,
+                               '%s-images-idx3-ubyte' % kind)
+
+    with open(labels_path, 'rb') as lbpath:
+        magic, n = struct.unpack('>II',
+                                 lbpath.read(8))
+        labels = np.fromfile(lbpath,
+                             dtype=np.uint8)
+
+    with open(images_path, 'rb') as imgpath:
+        magic, num, rows, cols = struct.unpack(">IIII",
+                                               imgpath.read(16))
+        images = np.fromfile(imgpath,
+                             dtype=np.uint8).reshape(len(labels), 784)
+        images = ((images / 255.) - .5) * 2
+
+    return images, labels
+
+
+X_train, y_train = load_mnist('', kind='train')
+print('Rows: %d, columns: %d' % (X_train.shape[0], X_train.shape[1]))
+
+X_test, y_test = load_mnist('', kind='t10k')
+print('Rows: %d, columns: %d' % (X_test.shape[0], X_test.shape[1]))
+
+nn = NeuralNetMLP(n_hidden=100,
+                  l2=0.01,
+                  epochs=n_epochs,
+                  eta=0.0005,
+                  minibatch_size=100,
+                  shuffle=True,
+                  seed=1)
+
+nn.fit(X_train=X_train[:55000],
+       y_train=y_train[:55000],
+       X_valid=X_train[55000:],
+       y_valid=y_train[55000:])
